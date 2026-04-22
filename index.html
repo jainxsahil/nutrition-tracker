@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nutrition Tracker</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+</head>
+<body>
+
+  <header>
+    <div class="header-inner">
+      <span class="logo">Nutrition Tracker</span>
+      <nav>
+        <button class="nav-btn active" data-view="log">Log Today</button>
+        <button class="nav-btn" data-view="progress">Progress</button>
+        <button class="nav-btn" data-view="weekly">Weekly</button>
+        <button class="nav-btn" data-view="monthly">Monthly</button>
+        <button class="nav-btn" data-view="history">History</button>
+        <button class="nav-btn goals-btn" data-view="settings">Goals</button>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Log Today -->
+    <section id="view-log" class="view active">
+      <div class="view-header">
+        <h2>Log Today</h2>
+        <p class="date-label" id="log-date-label"></p>
+      </div>
+      <div id="goals-banner" class="goals-banner" style="display:none">
+        <strong>Welcome!</strong> Set your daily goals before logging so you can track progress.
+        <button class="link-btn" data-view="settings">Set up goals →</button>
+      </div>
+      <form id="log-form">
+        <input type="date" id="log-date" name="date">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="log-calories">Calories <span class="unit">kcal</span></label>
+            <input type="number" id="log-calories" min="0" step="1" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="log-protein">Protein <span class="unit">g</span></label>
+            <input type="number" id="log-protein" min="0" step="0.1" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="log-carbs">Carbs <span class="unit">g</span></label>
+            <input type="number" id="log-carbs" min="0" step="0.1" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="log-fat">Fat <span class="unit">g</span></label>
+            <input type="number" id="log-fat" min="0" step="0.1" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="log-sugar">Added Sugar <span class="unit">g</span></label>
+            <input type="number" id="log-sugar" min="0" step="0.1" placeholder="0">
+          </div>
+          <div class="form-group">
+            <label for="log-fiber">Fiber <span class="unit">g</span></label>
+            <input type="number" id="log-fiber" min="0" step="0.1" placeholder="0">
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Save Log</button>
+      </form>
+    </section>
+
+    <!-- Today's Progress -->
+    <section id="view-progress" class="view">
+      <div class="view-header">
+        <h2>Today's Progress</h2>
+        <p class="date-label" id="progress-date-label"></p>
+      </div>
+      <div id="progress-bars"></div>
+      <p id="no-progress" class="empty-state" style="display:none">
+        No log for today yet.
+        <button class="link-btn" data-view="log">Log your day →</button>
+      </p>
+    </section>
+
+    <!-- Weekly -->
+    <section id="view-weekly" class="view">
+      <div class="view-header">
+        <h2>Weekly Overview</h2>
+        <p class="date-label">Last 7 days</p>
+      </div>
+      <div class="chart-toggles" id="weekly-toggles"></div>
+      <div class="chart-wrap">
+        <canvas id="weekly-chart"></canvas>
+      </div>
+    </section>
+
+    <!-- Monthly -->
+    <section id="view-monthly" class="view">
+      <div class="view-header">
+        <h2>Monthly Overview</h2>
+        <p class="date-label" id="monthly-label"></p>
+      </div>
+      <div class="chart-toggles" id="monthly-toggles"></div>
+      <div class="chart-wrap">
+        <canvas id="monthly-chart"></canvas>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section id="view-history" class="view">
+      <div class="view-header">
+        <h2>History</h2>
+      </div>
+      <p id="no-history" class="empty-state" style="display:none">
+        No logs yet.
+        <button class="link-btn" data-view="log">Start logging →</button>
+      </p>
+      <div class="table-wrap" id="history-table-wrap" style="display:none">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Calories</th>
+              <th>Protein</th>
+              <th>Carbs</th>
+              <th>Fat</th>
+              <th>Sugar</th>
+              <th>Fiber</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="history-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Goals / Settings -->
+    <section id="view-settings" class="view">
+      <div class="view-header">
+        <h2>Daily Goals</h2>
+        <p class="date-label">Your personal daily targets</p>
+      </div>
+      <form id="goals-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="goal-calories">Calories <span class="unit">kcal</span></label>
+            <input type="number" id="goal-calories" min="0" step="1" placeholder="2000">
+          </div>
+          <div class="form-group">
+            <label for="goal-protein">Protein <span class="unit">g</span></label>
+            <input type="number" id="goal-protein" min="0" step="0.1" placeholder="150">
+          </div>
+          <div class="form-group">
+            <label for="goal-carbs">Carbs <span class="unit">g</span></label>
+            <input type="number" id="goal-carbs" min="0" step="0.1" placeholder="250">
+          </div>
+          <div class="form-group">
+            <label for="goal-fat">Fat <span class="unit">g</span></label>
+            <input type="number" id="goal-fat" min="0" step="0.1" placeholder="65">
+          </div>
+          <div class="form-group">
+            <label for="goal-sugar">Added Sugar <span class="unit">g</span></label>
+            <input type="number" id="goal-sugar" min="0" step="0.1" placeholder="36">
+          </div>
+          <div class="form-group">
+            <label for="goal-fiber">Fiber <span class="unit">g</span></label>
+            <input type="number" id="goal-fiber" min="0" step="0.1" placeholder="30">
+          </div>
+        </div>
+        <button type="submit" class="btn-primary">Save Goals</button>
+      </form>
+    </section>
+
+  </main>
+
+  <div id="toast" class="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
