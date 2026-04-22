@@ -4,10 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Nutrition Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
 </head>
 <body>
+
+  <div class="orb"></div>
 
   <header>
     <div class="header-inner">
@@ -69,11 +74,11 @@
 
     <!-- Today's Progress -->
     <section id="view-progress" class="view">
-      <div class="view-header">
-        <h2>Today's Progress</h2>
-        <p class="date-label" id="progress-date-label"></p>
+      <div id="progress-hero" class="progress-hero"></div>
+      <div class="section-header" id="progress-nutrients-label" style="display:none">
+        <span class="section-label">Macros &amp; Nutrients</span>
       </div>
-      <div id="progress-bars"></div>
+      <div id="progress-cards" class="nutrient-cards-grid"></div>
       <p id="no-progress" class="empty-state" style="display:none">
         No log for today yet.
         <button class="link-btn" data-view="log">Log your day →</button>
@@ -113,23 +118,7 @@
         No logs yet.
         <button class="link-btn" data-view="log">Start logging →</button>
       </p>
-      <div class="table-wrap" id="history-table-wrap" style="display:none">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Calories</th>
-              <th>Protein</th>
-              <th>Carbs</th>
-              <th>Fat</th>
-              <th>Sugar</th>
-              <th>Fiber</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody id="history-body"></tbody>
-        </table>
-      </div>
+      <div id="history-list" class="history-list"></div>
     </section>
 
     <!-- Goals / Settings -->

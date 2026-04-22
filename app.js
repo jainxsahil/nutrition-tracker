@@ -21,12 +21,12 @@ const UNITS = {
 };
 
 const COLORS = {
-  calories: '#4f46e5',
-  protein:  '#0891b2',
-  carbs:    '#d97706',
-  fat:      '#7c3aed',
-  sugar:    '#e11d48',
-  fiber:    '#16a34a',
+  calories: '#FF7A40',
+  protein:  '#38BDF8',
+  carbs:    '#FBBF24',
+  fat:      '#A78BFA',
+  sugar:    '#F87171',
+  fiber:    '#4ADE80',
 };
 
 const DEFAULT_GOALS = {
@@ -187,75 +187,107 @@ document.getElementById('log-form').addEventListener('submit', e => {
 
 function renderProgress() {
   const today = todayStr();
-  document.getElementById('progress-date-label').textContent = formatDate(today);
-
   const log = getLog(today);
   const goals = getGoals() || DEFAULT_GOALS;
-  const container = document.getElementById('progress-bars');
+  const heroEl = document.getElementById('progress-hero');
+  const sectionHeader = document.getElementById('progress-nutrients-label');
+  const cardsEl = document.getElementById('progress-cards');
   const noData = document.getElementById('no-progress');
 
   if (!log) {
-    container.innerHTML = '';
+    heroEl.innerHTML = '';
+    cardsEl.innerHTML = '';
+    sectionHeader.style.display = 'none';
     noData.style.display = 'block';
     return;
   }
 
   noData.style.display = 'none';
-  container.innerHTML = NUTRIENTS.map(n => {
-    const val = log[n] || 0;
+  sectionHeader.style.display = 'flex';
+
+  const calVal  = log.calories || 0;
+  const calGoal = goals.calories || 1;
+  const calPct  = Math.round((calVal / calGoal) * 100);
+  const calFill = Math.min(calPct, 100);
+  const calCls  = colorClass(calVal, calGoal);
+  const calIcon = calCls === 'green' ? '✓' : calCls === 'amber' ? '⚠' : '↑';
+
+  heroEl.innerHTML = `
+    <p class="hero-eyebrow">${formatDate(today)}</p>
+    <p class="hero-number">${calVal.toLocaleString()}</p>
+    <p class="hero-unit">/ ${calGoal.toLocaleString()} kcal today</p>
+    <span class="hero-badge ${calCls}">${calIcon} ${calPct}% of daily goal</span>
+    <div class="hero-bar-wrap">
+      <div class="hero-bar-labels"><span>0</span><span>${calGoal.toLocaleString()} kcal</span></div>
+      <div class="hero-track"><div class="hero-fill" style="width:${calFill}%"></div></div>
+    </div>`;
+
+  cardsEl.innerHTML = NUTRIENTS.filter(n => n !== 'calories').map(n => {
+    const val  = log[n] || 0;
     const goal = goals[n] || 1;
-    const pct = Math.round((val / goal) * 100);
-    const fillPct = Math.min(pct, 100);
-    const cls = colorClass(val, goal);
+    const pct  = Math.round((val / goal) * 100);
+    const fill = Math.min(pct, 100);
+    const cls  = colorClass(val, goal);
+    const note = pct > 120 ? ' — over limit' : pct > 100 ? ' — slightly over' : '';
     return `
-      <div class="progress-item">
-        <div class="progress-header">
-          <span class="progress-name">${LABELS[n]}</span>
-          <span class="progress-values">
-            ${val} / ${goal} ${UNITS[n]}
-            <span class="progress-pct ${cls}">${pct}%</span>
-          </span>
+      <div class="nutrient-card">
+        <div class="card-top">
+          <span class="card-name">${LABELS[n]}</span>
+          <span class="card-dot ${cls}"></span>
         </div>
-        <div class="progress-track">
-          <div class="progress-fill ${cls}" style="width:${fillPct}%"></div>
+        <div class="card-value-row">
+          <span class="card-value">${val}</span>
+          <span class="card-unit">${UNITS[n]}</span>
         </div>
+        <div class="card-goal-text">/ ${goal} ${UNITS[n]} goal</div>
+        <div class="card-track"><div class="card-fill ${cls}" style="width:${fill}%"></div></div>
+        <div class="card-pct ${cls}">${pct}%${note}</div>
       </div>`;
   }).join('');
 }
 
 // ── History ────────────────────────────────────────────────────────────────
 
+const SHORT_LABELS = {
+  calories: 'Cal', protein: 'Protein', carbs: 'Carbs',
+  fat: 'Fat', sugar: 'Sugar', fiber: 'Fiber',
+};
+
 function renderHistory() {
   const logs = getLogs().slice().sort((a, b) => b.date.localeCompare(a.date));
   const noHistory = document.getElementById('no-history');
-  const tableWrap = document.getElementById('history-table-wrap');
-  const body = document.getElementById('history-body');
+  const listEl = document.getElementById('history-list');
   const goals = getGoals() || DEFAULT_GOALS;
 
   if (logs.length === 0) {
     noHistory.style.display = 'block';
-    tableWrap.style.display = 'none';
+    listEl.innerHTML = '';
     return;
   }
 
   noHistory.style.display = 'none';
-  tableWrap.style.display = 'block';
 
-  body.innerHTML = logs.map(log => `
-    <tr>
-      <td class="date-col">${formatDate(log.date)}</td>
-      ${NUTRIENTS.map(n => {
-        const val = log[n] ?? 0;
-        const cls = colorClass(val, goals[n]);
-        return `<td class="${cls}">${val}</td>`;
-      }).join('')}
-      <td>
-        <button class="btn-delete" data-date="${log.date}">Delete</button>
-      </td>
-    </tr>`
+  listEl.innerHTML = logs.map(log => `
+    <div class="history-card">
+      <div class="history-card-header">
+        <span class="history-date">${formatDate(log.date)}</span>
+        <button class="btn-delete" data-date="${log.date}" title="Delete">✕</button>
+      </div>
+      <div class="history-stats">
+        ${NUTRIENTS.map(n => {
+          const val = log[n] ?? 0;
+          const cls = colorClass(val, goals[n]);
+          return `
+            <div class="history-stat">
+              <span class="history-stat-label">${SHORT_LABELS[n]}</span>
+              <span class="history-stat-value ${cls}">${val}${UNITS[n]}</span>
+            </div>`;
+        }).join('')}
+      </div>
+    </div>`
   ).join('');
 
-  body.querySelectorAll('.btn-delete').forEach(btn => {
+  listEl.querySelectorAll('.btn-delete').forEach(btn => {
     btn.addEventListener('click', () => {
       if (confirm(`Delete log for ${formatDate(btn.dataset.date)}?`)) {
         deleteLog(btn.dataset.date);
@@ -283,12 +315,36 @@ function buildToggles(containerId, activeNutrient, onSelect) {
   });
 }
 
+const CHART_SCALES = {
+  y: {
+    beginAtZero: true,
+    grid: { color: '#1A2236' },
+    border: { display: false },
+    ticks: { color: '#3D5278', font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } },
+  },
+  x: {
+    grid: { display: false },
+    border: { display: false },
+    ticks: { color: '#3D5278', font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" }, maxRotation: 35 },
+  },
+};
+
+const CHART_TOOLTIP = {
+  backgroundColor: '#1A2236',
+  borderColor: '#1F2D45',
+  borderWidth: 1,
+  titleColor: '#F1F5F9',
+  bodyColor: '#8BA0BE',
+  padding: 10,
+  cornerRadius: 8,
+};
+
 function goalLineDataset(days, goal) {
   return {
     type: 'line',
     label: 'Goal',
     data: days.map(() => goal),
-    borderColor: '#94a3b8',
+    borderColor: '#3D5278',
     borderDash: [5, 4],
     borderWidth: 1.5,
     pointRadius: 0,
@@ -346,6 +402,7 @@ function renderWeekly(nutrient) {
       plugins: {
         legend: { display: false },
         tooltip: {
+          ...CHART_TOOLTIP,
           callbacks: {
             label: ctx => ctx.dataset.label === 'Goal'
               ? `Goal: ${ctx.raw} ${UNITS[n]}`
@@ -353,17 +410,7 @@ function renderWeekly(nutrient) {
           },
         },
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: '#f1f5f9' },
-          ticks: { color: '#94a3b8', font: { size: 11 } },
-        },
-        x: {
-          grid: { display: false },
-          ticks: { color: '#94a3b8', font: { size: 11 }, maxRotation: 35 },
-        },
-      },
+      scales: CHART_SCALES,
     },
   });
 }
@@ -429,6 +476,7 @@ function renderMonthly(nutrient) {
       plugins: {
         legend: { display: false },
         tooltip: {
+          ...CHART_TOOLTIP,
           callbacks: {
             label: ctx => ctx.dataset.label === 'Goal'
               ? `Goal: ${ctx.raw} ${UNITS[n]}`
@@ -439,15 +487,10 @@ function renderMonthly(nutrient) {
         },
       },
       scales: {
-        y: {
-          beginAtZero: true,
-          grid: { color: '#f1f5f9' },
-          ticks: { color: '#94a3b8', font: { size: 11 } },
-        },
+        ...CHART_SCALES,
         x: {
-          grid: { display: false },
-          ticks: { color: '#94a3b8', font: { size: 11 } },
-          title: { display: true, text: 'Day of month', color: '#94a3b8', font: { size: 11 } },
+          ...CHART_SCALES.x,
+          title: { display: true, text: 'Day of month', color: '#3D5278', font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } },
         },
       },
     },
