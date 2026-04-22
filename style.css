@@ -128,9 +128,7 @@ nav {
   font-weight: 700;
 }
 
-.goals-btn {
-  margin-left: auto;
-}
+/* (goals button is now a plain nav-btn — margin handled by .header-user) */
 
 /* ── Main layout ──────────────────────────────────── */
 
@@ -656,6 +654,110 @@ input[type="number"]::placeholder {
 .toast.show {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
+}
+
+/* ── Auth overlay ─────────────────────────────────── */
+
+.auth-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-base);
+  overflow: hidden;
+}
+
+.auth-overlay::before {
+  content: '';
+  position: absolute;
+  top: -180px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 45%,
+    rgba(255, 107, 53, 0.55) 0%,
+    rgba(255, 107, 53, 0.25) 35%,
+    transparent 68%
+  );
+  filter: blur(72px);
+  pointer-events: none;
+}
+
+.auth-card {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  max-width: 380px;
+  width: 100%;
+}
+
+.auth-logo {
+  display: block;
+  margin-bottom: 32px;
+  font-size: 0.875rem;
+}
+
+.auth-heading {
+  font-size: clamp(1.8rem, 6vw, 2.5rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+}
+
+.auth-sub {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-bottom: 36px;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.btn-google {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-full);
+  padding: 12px 24px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: var(--font);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.btn-google:hover {
+  background: var(--bg-elevated);
+  border-color: #304060;
+}
+
+/* ── Header user controls ──────────────────────────── */
+
+.header-user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.user-label {
+  font-size: 0.72rem;
+  color: var(--text-dim);
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Responsive ───────────────────────────────────── */
