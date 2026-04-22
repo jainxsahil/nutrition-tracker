@@ -38,48 +38,37 @@ const DEFAULT_GOALS = {
   fiber:    30,
 };
 
-const SHORT_LABELS = {
-  calories: 'Cal', protein: 'Protein', carbs: 'Carbs',
-  fat: 'Fat', sugar: 'Sugar', fiber: 'Fiber',
-};
+// ── Storage ────────────────────────────────────────────────────────────────
 
-// ── Firebase state ─────────────────────────────────────────────────────────
-// db and uid are null until the user signs in.
-
-let db  = null;
-let uid = null;
-
-function userCol(path) {
-  return db.collection('users').doc(uid).collection(path);
+function getGoals() {
+  const raw = localStorage.getItem('nt_goals');
+  return raw ? JSON.parse(raw) : null;
 }
 
-// ── Storage (Firestore) ────────────────────────────────────────────────────
-
-async function getGoals() {
-  const snap = await userCol('meta').doc('goals').get();
-  return snap.exists ? snap.data() : null;
+function saveGoals(goals) {
+  localStorage.setItem('nt_goals', JSON.stringify(goals));
 }
 
-async function saveGoals(goals) {
-  await userCol('meta').doc('goals').set(goals);
+function getLogs() {
+  const raw = localStorage.getItem('nt_logs');
+  return raw ? JSON.parse(raw) : [];
 }
 
-async function getLogs() {
-  const snap = await userCol('logs').get();
-  return snap.docs.map(d => d.data());
+function getLog(date) {
+  return getLogs().find(l => l.date === date) || null;
 }
 
-async function getLog(date) {
-  const snap = await userCol('logs').doc(date).get();
-  return snap.exists ? snap.data() : null;
+function upsertLog(log) {
+  const logs = getLogs();
+  const idx = logs.findIndex(l => l.date === log.date);
+  if (idx >= 0) logs[idx] = log;
+  else logs.push(log);
+  localStorage.setItem('nt_logs', JSON.stringify(logs));
 }
 
-async function upsertLog(log) {
-  await userCol('logs').doc(log.date).set(log);
-}
-
-async function deleteLog(date) {
-  await userCol('logs').doc(date).delete();
+function deleteLog(date) {
+  const logs = getLogs().filter(l => l.date !== date);
+  localStorage.setItem('nt_logs', JSON.stringify(logs));
 }
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -112,35 +101,23 @@ function showToast(msg) {
   toast._timer = setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
-// ── Auth ───────────────────────────────────────────────────────────────────
-
-function signIn() {
-  firebase.auth()
-    .signInWithPopup(new firebase.auth.GoogleAuthProvider())
-    .catch(() => showToast('Sign-in failed — please try again.'));
-}
-
-function signOut() {
-  firebase.auth().signOut();
-}
-
 // ── Navigation ─────────────────────────────────────────────────────────────
 
-let weeklyChartInst  = null;
+let weeklyChartInst = null;
 let monthlyChartInst = null;
 
-async function showView(name) {
+function showView(name) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('view-' + name).classList.add('active');
   document.querySelector(`.nav-btn[data-view="${name}"]`).classList.add('active');
 
-  if (name === 'log')      await renderLogForm();
-  if (name === 'progress') await renderProgress();
-  if (name === 'weekly')   await renderWeekly();
-  if (name === 'monthly')  await renderMonthly();
-  if (name === 'history')  await renderHistory();
-  if (name === 'settings') await renderGoalsForm();
+  if (name === 'log')      renderLogForm();
+  if (name === 'progress') renderProgress();
+  if (name === 'weekly')   renderWeekly();
+  if (name === 'monthly')  renderMonthly();
+  if (name === 'history')  renderHistory();
+  if (name === 'settings') renderGoalsForm();
 }
 
 document.querySelectorAll('[data-view]').forEach(btn => {
@@ -149,87 +126,87 @@ document.querySelectorAll('[data-view]').forEach(btn => {
 
 // ── Goals form ─────────────────────────────────────────────────────────────
 
-async function renderGoalsForm() {
-  const goals = (await getGoals()) || DEFAULT_GOALS;
+function renderGoalsForm() {
+  const goals = getGoals() || DEFAULT_GOALS;
   NUTRIENTS.forEach(n => {
     document.getElementById('goal-' + n).value = goals[n] ?? '';
   });
 }
 
-document.getElementById('goals-form').addEventListener('submit', async e => {
+document.getElementById('goals-form').addEventListener('submit', e => {
   e.preventDefault();
   const goals = {};
   NUTRIENTS.forEach(n => {
     goals[n] = parseFloat(document.getElementById('goal-' + n).value) || 0;
   });
-  await saveGoals(goals);
+  saveGoals(goals);
   showToast('Goals saved!');
 });
 
 // ── Log form ───────────────────────────────────────────────────────────────
 
-async function renderLogForm() {
+function renderLogForm() {
   const today = todayStr();
+
+  // Set up date picker: default to today, no future dates
   const datePicker = document.getElementById('log-date');
   if (!datePicker.value) datePicker.value = today;
   datePicker.max = today;
 
-  const [goals, existing] = await Promise.all([
-    getGoals(),
-    getLog(datePicker.value),
-  ]);
+  updateLogFormForDate(datePicker.value);
 
-  document.getElementById('goals-banner').style.display = goals ? 'none' : 'block';
-  document.getElementById('log-date-label').textContent = formatDate(datePicker.value);
+  // Show welcome banner if no goals set yet
+  const banner = document.getElementById('goals-banner');
+  banner.style.display = getGoals() ? 'none' : 'block';
+}
+
+function updateLogFormForDate(date) {
+  document.getElementById('log-date-label').textContent = formatDate(date);
+  const existing = getLog(date);
   NUTRIENTS.forEach(n => {
     document.getElementById('log-' + n).value = existing ? (existing[n] ?? '') : '';
   });
 }
 
-document.getElementById('log-date').addEventListener('change', async e => {
-  const existing = await getLog(e.target.value);
-  document.getElementById('log-date-label').textContent = formatDate(e.target.value);
-  NUTRIENTS.forEach(n => {
-    document.getElementById('log-' + n).value = existing ? (existing[n] ?? '') : '';
-  });
+document.getElementById('log-date').addEventListener('change', e => {
+  updateLogFormForDate(e.target.value);
 });
 
-document.getElementById('log-form').addEventListener('submit', async e => {
+document.getElementById('log-form').addEventListener('submit', e => {
   e.preventDefault();
   const date = document.getElementById('log-date').value || todayStr();
-  const log  = { date };
+  const log = { date };
   NUTRIENTS.forEach(n => {
     log[n] = parseFloat(document.getElementById('log-' + n).value) || 0;
   });
-  await upsertLog(log);
+  upsertLog(log);
   showToast('Log saved!');
 });
 
 // ── Today's Progress ───────────────────────────────────────────────────────
 
-async function renderProgress() {
+function renderProgress() {
   const today = todayStr();
-  const [log, goals] = await Promise.all([getLog(today), getGoals()]);
-  const g = goals || DEFAULT_GOALS;
-
-  const heroEl        = document.getElementById('progress-hero');
+  const log = getLog(today);
+  const goals = getGoals() || DEFAULT_GOALS;
+  const heroEl = document.getElementById('progress-hero');
   const sectionHeader = document.getElementById('progress-nutrients-label');
-  const cardsEl       = document.getElementById('progress-cards');
-  const noData        = document.getElementById('no-progress');
+  const cardsEl = document.getElementById('progress-cards');
+  const noData = document.getElementById('no-progress');
 
   if (!log) {
-    heroEl.innerHTML    = '';
-    cardsEl.innerHTML   = '';
+    heroEl.innerHTML = '';
+    cardsEl.innerHTML = '';
     sectionHeader.style.display = 'none';
-    noData.style.display        = 'block';
+    noData.style.display = 'block';
     return;
   }
 
-  noData.style.display        = 'none';
+  noData.style.display = 'none';
   sectionHeader.style.display = 'flex';
 
   const calVal  = log.calories || 0;
-  const calGoal = g.calories   || 1;
+  const calGoal = goals.calories || 1;
   const calPct  = Math.round((calVal / calGoal) * 100);
   const calFill = Math.min(calPct, 100);
   const calCls  = colorClass(calVal, calGoal);
@@ -247,7 +224,7 @@ async function renderProgress() {
 
   cardsEl.innerHTML = NUTRIENTS.filter(n => n !== 'calories').map(n => {
     const val  = log[n] || 0;
-    const goal = g[n]   || 1;
+    const goal = goals[n] || 1;
     const pct  = Math.round((val / goal) * 100);
     const fill = Math.min(pct, 100);
     const cls  = colorClass(val, goal);
@@ -271,22 +248,26 @@ async function renderProgress() {
 
 // ── History ────────────────────────────────────────────────────────────────
 
-async function renderHistory() {
-  const [logs, goals] = await Promise.all([getLogs(), getGoals()]);
-  const g = goals || DEFAULT_GOALS;
-  const sorted = logs.slice().sort((a, b) => b.date.localeCompare(a.date));
+const SHORT_LABELS = {
+  calories: 'Cal', protein: 'Protein', carbs: 'Carbs',
+  fat: 'Fat', sugar: 'Sugar', fiber: 'Fiber',
+};
 
+function renderHistory() {
+  const logs = getLogs().slice().sort((a, b) => b.date.localeCompare(a.date));
   const noHistory = document.getElementById('no-history');
-  const listEl    = document.getElementById('history-list');
+  const listEl = document.getElementById('history-list');
+  const goals = getGoals() || DEFAULT_GOALS;
 
-  if (sorted.length === 0) {
+  if (logs.length === 0) {
     noHistory.style.display = 'block';
     listEl.innerHTML = '';
     return;
   }
 
   noHistory.style.display = 'none';
-  listEl.innerHTML = sorted.map(log => `
+
+  listEl.innerHTML = logs.map(log => `
     <div class="history-card">
       <div class="history-card-header">
         <span class="history-date">${formatDate(log.date)}</span>
@@ -295,7 +276,7 @@ async function renderHistory() {
       <div class="history-stats">
         ${NUTRIENTS.map(n => {
           const val = log[n] ?? 0;
-          const cls = colorClass(val, g[n]);
+          const cls = colorClass(val, goals[n]);
           return `
             <div class="history-stat">
               <span class="history-stat-label">${SHORT_LABELS[n]}</span>
@@ -309,51 +290,14 @@ async function renderHistory() {
   listEl.querySelectorAll('.btn-delete').forEach(btn => {
     btn.addEventListener('click', () => {
       if (confirm(`Delete log for ${formatDate(btn.dataset.date)}?`)) {
-        deleteLog(btn.dataset.date).then(() => renderHistory());
+        deleteLog(btn.dataset.date);
+        renderHistory();
       }
     });
   });
 }
 
 // ── Charts ─────────────────────────────────────────────────────────────────
-
-const CHART_SCALES = {
-  y: {
-    beginAtZero: true,
-    grid:   { color: '#1A2236' },
-    border: { display: false },
-    ticks:  { color: '#3D5278', font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } },
-  },
-  x: {
-    grid:   { display: false },
-    border: { display: false },
-    ticks:  { color: '#3D5278', font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" }, maxRotation: 35 },
-  },
-};
-
-const CHART_TOOLTIP = {
-  backgroundColor: '#1A2236',
-  borderColor:     '#1F2D45',
-  borderWidth:     1,
-  titleColor:      '#F1F5F9',
-  bodyColor:       '#8BA0BE',
-  padding:         10,
-  cornerRadius:    8,
-};
-
-function goalLineDataset(days, goal) {
-  return {
-    type:        'line',
-    label:       'Goal',
-    data:        days.map(() => goal),
-    borderColor: '#3D5278',
-    borderDash:  [5, 4],
-    borderWidth: 1.5,
-    pointRadius: 0,
-    fill:        false,
-    tension:     0,
-  };
-}
 
 function buildToggles(containerId, activeNutrient, onSelect) {
   const container = document.getElementById(containerId);
@@ -371,25 +315,62 @@ function buildToggles(containerId, activeNutrient, onSelect) {
   });
 }
 
-let activeWeeklyNutrient  = 'calories';
-let activeMonthlyNutrient = 'calories';
+const CHART_SCALES = {
+  y: {
+    beginAtZero: true,
+    grid: { color: '#1A2236' },
+    border: { display: false },
+    ticks: { color: '#3D5278', font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" } },
+  },
+  x: {
+    grid: { display: false },
+    border: { display: false },
+    ticks: { color: '#3D5278', font: { size: 11, family: "'Plus Jakarta Sans', sans-serif" }, maxRotation: 35 },
+  },
+};
 
-async function renderWeekly(nutrient) {
+const CHART_TOOLTIP = {
+  backgroundColor: '#1A2236',
+  borderColor: '#1F2D45',
+  borderWidth: 1,
+  titleColor: '#F1F5F9',
+  bodyColor: '#8BA0BE',
+  padding: 10,
+  cornerRadius: 8,
+};
+
+function goalLineDataset(days, goal) {
+  return {
+    type: 'line',
+    label: 'Goal',
+    data: days.map(() => goal),
+    borderColor: '#3D5278',
+    borderDash: [5, 4],
+    borderWidth: 1.5,
+    pointRadius: 0,
+    fill: false,
+    tension: 0,
+  };
+}
+
+let activeWeeklyNutrient = 'calories';
+
+function renderWeekly(nutrient) {
   if (nutrient) activeWeeklyNutrient = nutrient;
   const n = activeWeeklyNutrient;
-
-  const [logs, goals] = await Promise.all([getLogs(), getGoals()]);
-  const g = goals || DEFAULT_GOALS;
+  const goals = getGoals() || DEFAULT_GOALS;
+  const logs = getLogs();
 
   const days = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    days.push(`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`);
+    const str = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    days.push(str);
   }
 
   const labels = days.map(d => formatDate(d));
-  const data   = days.map(d => {
+  const data = days.map(d => {
     const log = logs.find(l => l.date === d);
     return log ? (log[n] ?? null) : null;
   });
@@ -404,15 +385,15 @@ async function renderWeekly(nutrient) {
       labels,
       datasets: [
         {
-          type:            'bar',
-          label:           `${LABELS[n]} (${UNITS[n]})`,
+          type: 'bar',
+          label: `${LABELS[n]} (${UNITS[n]})`,
           data,
           backgroundColor: COLORS[n] + 'bb',
-          borderColor:     COLORS[n],
-          borderWidth:     1,
-          borderRadius:    5,
+          borderColor: COLORS[n],
+          borderWidth: 1,
+          borderRadius: 5,
         },
-        goalLineDataset(days, g[n]),
+        goalLineDataset(days, goals[n]),
       ],
     },
     options: {
@@ -434,18 +415,19 @@ async function renderWeekly(nutrient) {
   });
 }
 
-async function renderMonthly(nutrient) {
+let activeMonthlyNutrient = 'calories';
+
+function renderMonthly(nutrient) {
   if (nutrient) activeMonthlyNutrient = nutrient;
   const n = activeMonthlyNutrient;
+  const goals = getGoals() || DEFAULT_GOALS;
+  const logs = getLogs();
 
-  const [logs, goals] = await Promise.all([getLogs(), getGoals()]);
-  const g = goals || DEFAULT_GOALS;
-
-  const now         = new Date();
-  const year        = now.getFullYear();
-  const month       = now.getMonth();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const todayDate   = now.getDate();
+  const todayDate = now.getDate();
 
   document.getElementById('monthly-label').textContent =
     now.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -456,7 +438,7 @@ async function renderMonthly(nutrient) {
   }
 
   const labels = days.map((_, i) => String(i + 1));
-  const data   = days.map((dateStr, i) => {
+  const data = days.map((dateStr, i) => {
     if (i + 1 > todayDate) return null;
     const log = logs.find(l => l.date === dateStr);
     return log ? (log[n] ?? null) : null;
@@ -473,19 +455,19 @@ async function renderMonthly(nutrient) {
       labels,
       datasets: [
         {
-          label:              `${LABELS[n]} (${UNITS[n]})`,
+          label: `${LABELS[n]} (${UNITS[n]})`,
           data,
-          borderColor:        COLORS[n],
-          backgroundColor:    COLORS[n] + '22',
+          borderColor: COLORS[n],
+          backgroundColor: COLORS[n] + '22',
           pointBackgroundColor: COLORS[n],
-          pointRadius:        4,
-          pointHoverRadius:   6,
-          borderWidth:        2,
-          fill:               true,
-          tension:            0.35,
-          spanGaps:           false,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          borderWidth: 2,
+          fill: true,
+          tension: 0.35,
+          spanGaps: false,
         },
-        goalLineDataset(days, g[n]),
+        goalLineDataset(days, goals[n]),
       ],
     },
     options: {
@@ -498,7 +480,9 @@ async function renderMonthly(nutrient) {
           callbacks: {
             label: ctx => ctx.dataset.label === 'Goal'
               ? `Goal: ${ctx.raw} ${UNITS[n]}`
-              : ctx.raw != null ? `${ctx.raw} ${UNITS[n]}` : 'No data',
+              : ctx.raw != null
+                ? `${ctx.raw} ${UNITS[n]}`
+                : 'No data',
           },
         },
       },
@@ -513,29 +497,6 @@ async function renderMonthly(nutrient) {
   });
 }
 
-// ── Startup ────────────────────────────────────────────────────────────────
+// ── Init ───────────────────────────────────────────────────────────────────
 
-// Cache Firestore reads to local disk so the app works offline and loads fast
-firebase.firestore().enablePersistence({ synchronizeTabs: true })
-  .catch(err => console.warn('Offline persistence unavailable:', err.code));
-
-firebase.auth().onAuthStateChanged(user => {
-  const overlay   = document.getElementById('auth-overlay');
-  const userLabel = document.getElementById('user-label');
-
-  if (user) {
-    db  = firebase.firestore();
-    uid = user.uid;
-    overlay.style.display   = 'none';
-    userLabel.textContent   = user.displayName || user.email;
-    showView('log');
-  } else {
-    db  = null;
-    uid = null;
-    overlay.style.display = 'flex';
-    userLabel.textContent  = '';
-  }
-});
-
-document.getElementById('sign-in-btn').addEventListener('click',  signIn);
-document.getElementById('sign-out-btn').addEventListener('click', signOut);
+showView('log');
