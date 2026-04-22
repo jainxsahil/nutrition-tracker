@@ -149,6 +149,17 @@ main {
 
 .view-header {
   margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.view-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
 
 h2 {
@@ -300,187 +311,27 @@ input[type="number"]::placeholder {
 .btn-primary:hover  { opacity: 0.88; }
 .btn-primary:active { transform: scale(0.98); }
 
-/* ── Progress: Hero ───────────────────────────────── */
+/* ── Export button ────────────────────────────────── */
 
-.progress-hero {
-  text-align: center;
-  padding: 44px 0 48px;
-}
-
-.hero-eyebrow {
-  font-size: 0.72rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 14px;
-}
-
-.hero-number {
-  font-size: clamp(3.5rem, 9vw, 5.5rem);
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  line-height: 1;
-  background: linear-gradient(140deg, #ffffff 0%, var(--accent-end) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.hero-unit {
-  font-size: clamp(1rem, 3vw, 1.3rem);
-  font-weight: 400;
-  color: var(--text-secondary);
-  margin-top: 8px;
-  letter-spacing: -0.01em;
-}
-
-.hero-badge {
-  display: inline-block;
-  margin-top: 16px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 5px 14px;
-  border-radius: var(--radius-full);
-  letter-spacing: 0.02em;
-}
-
-.hero-badge.green { color: var(--ok);   background: rgba(74,  222, 128, 0.10); border: 1px solid rgba(74,  222, 128, 0.22); }
-.hero-badge.amber { color: var(--warn); background: rgba(251, 191,  36, 0.10); border: 1px solid rgba(251, 191,  36, 0.22); }
-.hero-badge.red   { color: var(--over); background: rgba(248, 113, 113, 0.10); border: 1px solid rgba(248, 113, 113, 0.22); }
-
-.hero-bar-wrap {
-  max-width: 440px;
-  margin: 22px auto 0;
-}
-
-.hero-bar-labels {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.68rem;
-  color: var(--text-dim);
-  font-weight: 600;
-  margin-bottom: 7px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.hero-track {
-  height: 8px;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-}
-
-.hero-fill {
-  height: 100%;
-  border-radius: var(--radius-full);
-  background: linear-gradient(90deg, var(--accent-start), var(--accent-end));
-  box-shadow: 0 0 14px rgba(255, 107, 53, 0.45);
-  transition: width 0.5s ease;
-}
-
-/* ── Progress: Nutrient cards ─────────────────────── */
-
-.nutrient-cards-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.nutrient-card {
-  background: var(--bg-surface);
+.btn-export {
+  background: none;
   border: 1px solid var(--bg-border);
-  border-radius: var(--radius-md);
-  padding: 18px 20px;
-  transition: background 0.15s, border-color 0.15s;
-}
-
-.nutrient-card:hover {
-  background: var(--bg-elevated);
-  border-color: #2A3D5C;
-}
-
-.card-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-}
-
-.card-name {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--text-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.card-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  margin-top: 2px;
+  border-radius: var(--radius-full);
+  padding: 6px 16px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: var(--font);
+  color: var(--accent-solid);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
   flex-shrink: 0;
 }
 
-.card-dot.green { background: var(--ok);   box-shadow: 0 0 6px var(--ok); }
-.card-dot.amber { background: var(--warn); box-shadow: 0 0 6px var(--warn); }
-.card-dot.red   { background: var(--over); box-shadow: 0 0 6px var(--over); }
-
-.card-value-row {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-  margin-top: 10px;
+.btn-export:hover {
+  border-color: var(--accent-solid);
+  background: var(--accent-glow);
 }
-
-.card-value {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.03em;
-  line-height: 1;
-}
-
-.card-unit {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-.card-goal-text {
-  font-size: 0.7rem;
-  color: var(--text-dim);
-  margin-top: 3px;
-}
-
-.card-track {
-  height: 5px;
-  background: var(--bg-elevated);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  margin-top: 12px;
-}
-
-.card-fill {
-  height: 100%;
-  border-radius: var(--radius-full);
-  transition: width 0.5s ease;
-}
-
-.card-fill.green { background: linear-gradient(90deg, #15803d, var(--ok)); }
-.card-fill.amber { background: linear-gradient(90deg, #92400e, var(--warn)); }
-.card-fill.red   { background: linear-gradient(90deg, #991b1b, var(--over)); }
-
-.card-pct {
-  font-size: 0.68rem;
-  font-weight: 700;
-  margin-top: 6px;
-}
-
-.card-pct.green { color: var(--ok); }
-.card-pct.amber { color: var(--warn); }
-.card-pct.red   { color: var(--over); }
 
 /* ── Chart toggles ────────────────────────────────── */
 

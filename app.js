@@ -113,7 +113,6 @@ function showView(name) {
   document.querySelector(`.nav-btn[data-view="${name}"]`).classList.add('active');
 
   if (name === 'log')      renderLogForm();
-  if (name === 'progress') renderProgress();
   if (name === 'weekly')   renderWeekly();
   if (name === 'monthly')  renderMonthly();
   if (name === 'history')  renderHistory();
@@ -182,69 +181,6 @@ document.getElementById('log-form').addEventListener('submit', e => {
   upsertLog(log);
   showToast('Log saved!');
 });
-
-// ── Today's Progress ───────────────────────────────────────────────────────
-
-function renderProgress() {
-  const today = todayStr();
-  const log = getLog(today);
-  const goals = getGoals() || DEFAULT_GOALS;
-  const heroEl = document.getElementById('progress-hero');
-  const sectionHeader = document.getElementById('progress-nutrients-label');
-  const cardsEl = document.getElementById('progress-cards');
-  const noData = document.getElementById('no-progress');
-
-  if (!log) {
-    heroEl.innerHTML = '';
-    cardsEl.innerHTML = '';
-    sectionHeader.style.display = 'none';
-    noData.style.display = 'block';
-    return;
-  }
-
-  noData.style.display = 'none';
-  sectionHeader.style.display = 'flex';
-
-  const calVal  = log.calories || 0;
-  const calGoal = goals.calories || 1;
-  const calPct  = Math.round((calVal / calGoal) * 100);
-  const calFill = Math.min(calPct, 100);
-  const calCls  = colorClass(calVal, calGoal);
-  const calIcon = calCls === 'green' ? '✓' : calCls === 'amber' ? '⚠' : '↑';
-
-  heroEl.innerHTML = `
-    <p class="hero-eyebrow">${formatDate(today)}</p>
-    <p class="hero-number">${calVal.toLocaleString()}</p>
-    <p class="hero-unit">/ ${calGoal.toLocaleString()} kcal today</p>
-    <span class="hero-badge ${calCls}">${calIcon} ${calPct}% of daily goal</span>
-    <div class="hero-bar-wrap">
-      <div class="hero-bar-labels"><span>0</span><span>${calGoal.toLocaleString()} kcal</span></div>
-      <div class="hero-track"><div class="hero-fill" style="width:${calFill}%"></div></div>
-    </div>`;
-
-  cardsEl.innerHTML = NUTRIENTS.filter(n => n !== 'calories').map(n => {
-    const val  = log[n] || 0;
-    const goal = goals[n] || 1;
-    const pct  = Math.round((val / goal) * 100);
-    const fill = Math.min(pct, 100);
-    const cls  = colorClass(val, goal);
-    const note = pct > 120 ? ' — over limit' : pct > 100 ? ' — slightly over' : '';
-    return `
-      <div class="nutrient-card">
-        <div class="card-top">
-          <span class="card-name">${LABELS[n]}</span>
-          <span class="card-dot ${cls}"></span>
-        </div>
-        <div class="card-value-row">
-          <span class="card-value">${val}</span>
-          <span class="card-unit">${UNITS[n]}</span>
-        </div>
-        <div class="card-goal-text">/ ${goal} ${UNITS[n]} goal</div>
-        <div class="card-track"><div class="card-fill ${cls}" style="width:${fill}%"></div></div>
-        <div class="card-pct ${cls}">${pct}%${note}</div>
-      </div>`;
-  }).join('');
-}
 
 // ── History ────────────────────────────────────────────────────────────────
 
@@ -496,6 +432,49 @@ function renderMonthly(nutrient) {
     },
   });
 }
+
+// ── Export ─────────────────────────────────────────────────────────────────
+
+function exportToExcel() {
+  const logs = getLogs().slice().sort((a, b) => a.date.localeCompare(b.date));
+  const goals = getGoals() || DEFAULT_GOALS;
+
+  if (logs.length === 0) {
+    showToast('No logs to export.');
+    return;
+  }
+
+  const wb = XLSX.utils.book_new();
+
+  // Sheet 1: Logs
+  const logRows = [
+    ['Date', 'Calories (kcal)', 'Protein (g)', 'Carbs (g)', 'Fat (g)', 'Added Sugar (g)', 'Fiber (g)'],
+    ...logs.map(l => [l.date, l.calories, l.protein, l.carbs, l.fat, l.sugar, l.fiber]),
+  ];
+  const wsLogs = XLSX.utils.aoa_to_sheet(logRows);
+  wsLogs['!cols'] = [{ wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(wb, wsLogs, 'Logs');
+
+  // Sheet 2: Goals
+  const goalRows = [
+    ['Nutrient', 'Goal'],
+    ['Calories', goals.calories],
+    ['Protein (g)', goals.protein],
+    ['Carbs (g)', goals.carbs],
+    ['Fat (g)', goals.fat],
+    ['Added Sugar (g)', goals.sugar],
+    ['Fiber (g)', goals.fiber],
+  ];
+  const wsGoals = XLSX.utils.aoa_to_sheet(goalRows);
+  wsGoals['!cols'] = [{ wch: 16 }, { wch: 10 }];
+  XLSX.utils.book_append_sheet(wb, wsGoals, 'Goals');
+
+  const dateStr = todayStr();
+  XLSX.writeFile(wb, `nutrition-log-${dateStr}.xlsx`);
+  showToast('Exported!');
+}
+
+document.getElementById('btn-export').addEventListener('click', exportToExcel);
 
 // ── Init ───────────────────────────────────────────────────────────────────
 
