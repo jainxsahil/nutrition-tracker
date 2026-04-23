@@ -19,7 +19,8 @@
     <div class="header-inner">
       <span class="logo">Nutrition Tracker</span>
       <nav>
-        <button class="nav-btn active" data-view="log">Log Today</button>
+        <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+        <button class="nav-btn" data-view="log">Log Today</button>
         <button class="nav-btn" data-view="weekly">Weekly</button>
         <button class="nav-btn" data-view="monthly">Monthly</button>
         <button class="nav-btn" data-view="history">History</button>
@@ -30,8 +31,32 @@
 
   <main>
 
+    <!-- Dashboard -->
+    <section id="view-dashboard" class="view active">
+      <div class="view-header">
+        <div class="view-header-text">
+          <h2>Dashboard</h2>
+          <p class="date-label" id="dash-date-label"></p>
+        </div>
+      </div>
+      <div id="dash-empty" class="empty-state" style="display:none">
+        No data yet — start by logging your first day.
+        <button class="link-btn" data-view="log">Log your first meal →</button>
+      </div>
+      <div id="dash-content">
+        <div class="section-header">
+          <span class="section-label">All-Time Averages vs. Goals</span>
+        </div>
+        <div id="dash-averages" class="dash-grid"></div>
+        <div class="section-header">
+          <span class="section-label">Summary</span>
+        </div>
+        <div id="dash-summary" class="dash-summary-row"></div>
+      </div>
+    </section>
+
     <!-- Log Today -->
-    <section id="view-log" class="view active">
+    <section id="view-log" class="view">
       <div class="view-header">
         <div class="view-header-text">
           <h2>Log Today</h2>

@@ -311,6 +311,155 @@ input[type="number"]::placeholder {
 .btn-primary:hover  { opacity: 0.88; }
 .btn-primary:active { transform: scale(0.98); }
 
+/* ── Dashboard: Averages grid ─────────────────────── */
+
+.dash-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+
+.dash-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  padding: 18px 20px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.dash-card:hover {
+  background: var(--bg-elevated);
+  border-color: #2A3D5C;
+}
+
+.dash-card-name {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.dash-avg-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.dash-avg {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.03em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-avg-unit {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.dash-goal-text {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.dash-track {
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.dash-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  width: 0;
+  transition: width 0.55s cubic-bezier(0.34, 1.04, 0.64, 1);
+}
+
+.dash-fill.green { background: linear-gradient(90deg, #15803d, var(--ok)); }
+.dash-fill.amber { background: linear-gradient(90deg, #92400e, var(--warn)); }
+.dash-fill.red   { background: linear-gradient(90deg, #991b1b, var(--over)); }
+
+.dash-pct {
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-top: 6px;
+}
+
+.dash-pct.green { color: var(--ok); }
+.dash-pct.amber { color: var(--warn); }
+.dash-pct.red   { color: var(--over); }
+
+/* ── Dashboard: Summary row ───────────────────────── */
+
+.dash-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.dash-stat-tile {
+  background: var(--bg-surface);
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  padding: 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.dash-stat-tile:hover {
+  background: var(--bg-elevated);
+  border-color: #2A3D5C;
+}
+
+.dash-stat-value {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.dash-stat-value-pct {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  letter-spacing: -0.02em;
+}
+
+.dash-stat-label {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-top: 4px;
+}
+
+.dash-stat-sub {
+  font-size: 0.64rem;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+@media (max-width: 560px) {
+  .dash-summary-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 /* ── Export button ────────────────────────────────── */
 
 .btn-export {
@@ -514,6 +663,10 @@ input[type="number"]::placeholder {
 @media (max-width: 560px) {
   .history-stats {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  .dash-grid {
+    grid-template-columns: 1fr;
   }
 }
 

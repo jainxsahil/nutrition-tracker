@@ -2,6 +2,22 @@
 
 const NUTRIENTS = ['calories', 'protein', 'carbs', 'fat', 'sugar', 'fiber'];
 
+// Threshold config — adjust these to change color-coding on the Dashboard
+const THRESHOLDS = {
+  maximize:   { low: 0.75, ok: 0.95 },
+  minimize:   { warn: 0.90, over: 1.00 },
+  goldilocks: { lowRed: 0.70, lowAmber: 0.85, highAmber: 1.15, highRed: 1.30 },
+};
+
+const NUTRIENT_TYPE = {
+  calories: 'maximize',
+  protein:  'maximize',
+  carbs:    'maximize',
+  fat:      'minimize',
+  sugar:    'minimize',
+  fiber:    'goldilocks',
+};
+
 const LABELS = {
   calories: 'Calories',
   protein:  'Protein',
@@ -93,6 +109,38 @@ function colorClass(value, goal) {
   return 'red';
 }
 
+function thresholdClass(nutrient, pct) {
+  const type = NUTRIENT_TYPE[nutrient];
+  if (type === 'maximize') {
+    if (pct >= THRESHOLDS.maximize.ok)  return 'green';
+    if (pct >= THRESHOLDS.maximize.low) return 'amber';
+    return 'red';
+  }
+  if (type === 'minimize') {
+    if (pct <= THRESHOLDS.minimize.warn) return 'green';
+    if (pct <= THRESHOLDS.minimize.over) return 'amber';
+    return 'red';
+  }
+  // goldilocks (fiber)
+  const t = THRESHOLDS.goldilocks;
+  if (pct >= t.lowAmber && pct <= t.highAmber) return 'green';
+  if (pct >= t.lowRed   && pct <= t.highRed)   return 'amber';
+  return 'red';
+}
+
+function countUp(el, target, duration, decimals) {
+  const start = performance.now();
+  (function step(now) {
+    const t = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const value = eased * target;
+    el.textContent = decimals > 0
+      ? value.toFixed(decimals)
+      : Math.round(value).toLocaleString();
+    if (t < 1) requestAnimationFrame(step);
+  })(start);
+}
+
 function showToast(msg) {
   const toast = document.getElementById('toast');
   toast.textContent = msg;
@@ -112,6 +160,7 @@ function showView(name) {
   document.getElementById('view-' + name).classList.add('active');
   document.querySelector(`.nav-btn[data-view="${name}"]`).classList.add('active');
 
+  if (name === 'dashboard') renderDashboard();
   if (name === 'log')      renderLogForm();
   if (name === 'weekly')   renderWeekly();
   if (name === 'monthly')  renderMonthly();
@@ -181,6 +230,148 @@ document.getElementById('log-form').addEventListener('submit', e => {
   upsertLog(log);
   showToast('Log saved!');
 });
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+
+function computeStreaks(logs) {
+  if (logs.length === 0) return { current: 0, longest: 0 };
+
+  const dates = new Set(logs.map(l => l.date));
+
+  function dateStr(d) {
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  }
+
+  // Current streak — start from today; if today not logged, start from yesterday
+  let cursor = new Date();
+  if (!dates.has(dateStr(cursor))) cursor.setDate(cursor.getDate() - 1);
+  let current = 0;
+  while (dates.has(dateStr(cursor))) {
+    current++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  // Longest streak — walk sorted dates counting consecutive days
+  const sorted = [...dates].sort();
+  let longest = 1, run = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    const [py, pm, pd] = sorted[i-1].split('-').map(Number);
+    const [cy, cm, cd] = sorted[i].split('-').map(Number);
+    const diff = Math.round((new Date(cy, cm-1, cd) - new Date(py, pm-1, pd)) / 86400000);
+    if (diff === 1) { run++; if (run > longest) longest = run; }
+    else run = 1;
+  }
+
+  return { current, longest };
+}
+
+function computeConsistency(logs, goals) {
+  if (logs.length === 0) return 0;
+  let greenCount = 0;
+  logs.forEach(log => {
+    NUTRIENTS.forEach(n => {
+      const pct = (log[n] || 0) / (goals[n] || 1);
+      if (thresholdClass(n, pct) === 'green') greenCount++;
+    });
+  });
+  return Math.round((greenCount / (logs.length * NUTRIENTS.length)) * 100);
+}
+
+function renderDashboard() {
+  const logs  = getLogs();
+  const goals = getGoals() || DEFAULT_GOALS;
+
+  document.getElementById('dash-date-label').textContent =
+    new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const dashEmpty   = document.getElementById('dash-empty');
+  const dashContent = document.getElementById('dash-content');
+
+  if (logs.length === 0) {
+    dashEmpty.style.display = 'block';
+    dashContent.style.display = 'none';
+    return;
+  }
+
+  dashEmpty.style.display = 'none';
+  dashContent.style.display = 'block';
+
+  const avgs = {};
+  NUTRIENTS.forEach(n => {
+    avgs[n] = logs.reduce((sum, l) => sum + (l[n] || 0), 0) / logs.length;
+  });
+
+  const grid = document.getElementById('dash-averages');
+  grid.innerHTML = NUTRIENTS.map((n, i) => {
+    const avg      = avgs[n];
+    const goal     = goals[n] || 1;
+    const pct      = avg / goal;
+    const pctLabel = Math.round(pct * 100);
+    const barWidth = Math.min(pct, 1) * 100;
+    const cls      = thresholdClass(n, pct);
+    const decimals = n === 'calories' ? 0 : 1;
+    return `
+      <div class="dash-card">
+        <div class="dash-card-name">${LABELS[n]}</div>
+        <div class="dash-avg-row">
+          <span class="dash-avg" data-target="${avg}" data-decimals="${decimals}">0</span>
+          <span class="dash-avg-unit">${UNITS[n]}</span>
+        </div>
+        <div class="dash-goal-text">goal: ${n === 'calories' ? goal.toLocaleString() : goal} ${UNITS[n]}</div>
+        <div class="dash-track">
+          <div class="dash-fill ${cls}" data-width="${barWidth.toFixed(2)}"></div>
+        </div>
+        <div class="dash-pct ${cls}">${pctLabel}% of goal</div>
+      </div>`;
+  }).join('');
+
+  requestAnimationFrame(() => {
+    grid.querySelectorAll('.dash-fill').forEach((bar, i) => {
+      setTimeout(() => { bar.style.width = bar.dataset.width + '%'; }, i * 70);
+    });
+    grid.querySelectorAll('.dash-avg').forEach((el, i) => {
+      setTimeout(() => {
+        countUp(el, parseFloat(el.dataset.target), 600, parseInt(el.dataset.decimals));
+      }, i * 70);
+    });
+  });
+
+  // Summary stats
+  const { current, longest } = computeStreaks(logs);
+  const consistency = computeConsistency(logs, goals);
+
+  const streakLabel = current === 1 ? 'day' : 'days';
+  const longestLabel = longest === 1 ? 'day' : 'days';
+
+  document.getElementById('dash-summary').innerHTML = `
+    <div class="dash-stat-tile">
+      <span class="dash-stat-value" data-target="${logs.length}" data-decimals="0">0</span>
+      <span class="dash-stat-label">Days Logged</span>
+    </div>
+    <div class="dash-stat-tile">
+      <span class="dash-stat-value" data-target="${current}" data-decimals="0">0</span>
+      <span class="dash-stat-label">Current Streak</span>
+      <span class="dash-stat-sub">${current > 0 ? streakLabel + ' in a row' : 'log today to start one'}</span>
+    </div>
+    <div class="dash-stat-tile">
+      <span class="dash-stat-value" data-target="${longest}" data-decimals="0">0</span>
+      <span class="dash-stat-label">Longest Streak</span>
+      <span class="dash-stat-sub">${longest > 0 ? longestLabel : '—'}</span>
+    </div>
+    <div class="dash-stat-tile">
+      <span class="dash-stat-value" data-target="${consistency}" data-decimals="0">0</span><span class="dash-stat-value-pct">%</span>
+      <span class="dash-stat-label">Consistency</span>
+      <span class="dash-stat-sub">avg macros in green zone</span>
+    </div>`;
+
+  requestAnimationFrame(() => {
+    document.getElementById('dash-summary').querySelectorAll('.dash-stat-value').forEach(el => {
+      if (el.dataset.target !== undefined) {
+        countUp(el, parseFloat(el.dataset.target), 700, parseInt(el.dataset.decimals || 0));
+      }
+    });
+  });
+}
 
 // ── History ────────────────────────────────────────────────────────────────
 
@@ -478,4 +669,4 @@ document.getElementById('btn-export').addEventListener('click', exportToExcel);
 
 // ── Init ───────────────────────────────────────────────────────────────────
 
-showView('log');
+showView('dashboard');
